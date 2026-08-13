@@ -1,7 +1,7 @@
 # UniForget — project page
 
 Project page for **Unconsciously Forget: Mitigating Memorization Without Knowing
-What is being Memorized** (ECCV 2026 Workshop on Safe World Models for Trustworthy Embodied AI, submission 4866).
+What is being Memorized** (ECCV 2026 Workshop on Safe World Models for Trustworthy Embodied AI).
 
 Live at <https://jasonjin34.github.io/uniforget_page/>
 

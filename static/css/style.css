@@ -94,6 +94,12 @@ p:last-child { margin-bottom: 0; }
 }
 .affils sup { margin-right: .15em; }
 
+.equal {
+  font-size: .86rem;
+  color: var(--muted);
+  margin: -1.25rem 0 1.75rem;
+}
+
 .links { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; }
 
 .btn {

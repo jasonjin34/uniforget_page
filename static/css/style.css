@@ -67,7 +67,8 @@ p:last-child { margin-bottom: 0; }
 .venue {
   font-family: var(--mono);
   font-size: .8rem;
-  letter-spacing: .06em;
+  line-height: 1.6;
+  letter-spacing: .04em;
   color: var(--muted);
   margin-bottom: 1.25rem;
 }

@@ -104,6 +104,7 @@ section.plate.alt { background: var(--ink); }
   margin: 0 0 clamp(1.5rem, 4vw, 2.5rem);
 }
 
+/* The wordmark fades toward its tail, like the mask taking hold. */
 .wordmark {
   font-family: var(--display);
   font-weight: 700;
@@ -112,10 +113,13 @@ section.plate.alt { background: var(--ink); }
   letter-spacing: -.045em;
   margin: 0;
   color: var(--bright);
+  background-image: linear-gradient(96deg, var(--bright) 0%, var(--bright) 38%, #9FB5AB 78%, #6E8880 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
 }
-/* the "forget" half fades, like the mask taking hold */
-.wordmark { background: linear-gradient(96deg, var(--bright) 0%, var(--bright) 38%, #9FB5AB 78%, #6E8880 100%);
-  -webkit-background-clip: text; background-clip: text; color: transparent; }
+@supports (-webkit-background-clip: text) or (background-clip: text) {
+  .wordmark { color: transparent; }
+}
 
 .lede {
   font-family: var(--display);
@@ -217,10 +221,9 @@ section.plate.alt { background: var(--ink); }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
   gap: 1px;
-  margin-top: 1px;
+  margin-top: .5rem;
   background: var(--line-soft);
   border: 1px solid var(--line);
-  border-top: none;
 }
 .ro {
   background: var(--ink-2);
@@ -368,7 +371,11 @@ table.data thead th {
   border-bottom: 1px solid var(--line);
 }
 table.data thead tr.sub th { padding-top: 0; font-size: .68rem; }
-table.data th[scope="row"], table.data .th-model, thead th:first-child {
+/* Only the first header cell of the FIRST header row is a row-label column —
+   scoping this to thead tr:first-child keeps the sub-header row right-aligned. */
+table.data th[scope="row"],
+table.data .th-model,
+table.data thead tr:first-child th:first-child {
   text-align: left; color: var(--text); font-weight: 500; white-space: nowrap;
 }
 table.data th[scope="row"] i { color: var(--fog); font-style: normal; }
@@ -383,8 +390,8 @@ table.data tbody td { color: var(--text); }
 table.data .best { color: var(--green); font-weight: 600; }
 table.data tr.retrain th[scope="row"], table.data tr.retrain td { color: var(--fog); }
 table.data tr.retrain .best { color: var(--green); }
-table.data td.x { color: #4E605A; }
-table.data td.c { color: var(--green); }
+table.data td.x { color: #64796F; text-align: center; }
+table.data td.c { color: var(--green); text-align: center; }
 
 table.data tbody tr.is-active {
   background: #1A1B12;

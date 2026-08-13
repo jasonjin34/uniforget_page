@@ -24,7 +24,7 @@
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var current = 'medium';
   var cells = [];
-  var ranks = [];
+  var order = [];   /* cell indices sorted by mask rank, lowest first */
   var cols = 0;
 
   /* Deterministic PRNG so the mask pattern is stable across reloads and
@@ -54,8 +54,8 @@
     grid.style.setProperty('--cols', cols);
     grid.textContent = '';
     cells = [];
-    ranks = [];
 
+    var ranks = [];
     var frag = document.createDocumentFragment();
     for (var i = 0; i < total; i++) {
       var c = document.createElement('span');
@@ -65,21 +65,27 @@
       frag.appendChild(c);
     }
     grid.appendChild(frag);
+
+    /* Deactivating a prefix of this order — rather than thresholding on the
+       raw ranks — makes the visible fraction match the quoted percentage
+       exactly, and makes each level's set nest inside the next one up. */
+    order = cells.map(function (_, i) { return i; })
+                 .sort(function (a, b) { return ranks[a] - ranks[b]; });
   }
 
   function paint(level, animate) {
-    var ratio = LEVELS[level].mask / 100;
-    for (var i = 0; i < cells.length; i++) {
-      var shouldBeOff = ranks[i] < ratio;
-      var isOff = cells[i].classList.contains('off');
-      if (shouldBeOff === isOff) continue;
+    var cut = Math.round(LEVELS[level].mask / 100 * cells.length);
+    for (var rank = 0; rank < order.length; rank++) {
+      var cell = cells[order[rank]];
+      var shouldBeOff = rank < cut;
+      if (shouldBeOff === cell.classList.contains('off')) continue;
 
-      cells[i].classList.toggle('off', shouldBeOff);
+      cell.classList.toggle('off', shouldBeOff);
 
       /* Newly deactivated cells flash gold on their way to red —
          the paper's colormap read as a transition. */
       if (shouldBeOff && animate) {
-        flash(cells[i], (ranks[i] * 320) | 0);
+        flash(cell, (rank / Math.max(cut, 1) * 320) | 0);
       }
     }
   }

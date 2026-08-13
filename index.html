@@ -33,8 +33,8 @@
       <li>Er Jin<sup>1,*</sup></li>
       <li>Yang Zhang<sup>2,*</sup></li>
       <li>Yongli Mou<sup>3</sup></li>
-      <li>Yanfei Dong<sup>4</sup></li>
-      <li>Stefan Decker<sup>1,5</sup></li>
+      <li>Yanfei Dong<sup>2</sup></li>
+      <li>Stefan Decker<sup>1,4</sup></li>
       <li>Johannes Stegmaier<sup>1</sup></li>
     </ul>
 
@@ -42,8 +42,7 @@
       <li><sup>1</sup>Institute of Imaging and Computer Vision, RWTH Aachen University</li>
       <li><sup>2</sup>National University of Singapore</li>
       <li><sup>3</sup>Department of Computer Science, RWTH Aachen University</li>
-      <li><sup>4</sup>Independent Researcher</li>
-      <li><sup>5</sup>Fraunhofer Institute for Applied Information Technology FIT</li>
+      <li><sup>4</sup>Fraunhofer Institute for Applied Information Technology FIT</li>
     </ul>
 
     <p class="equal"><sup>*</sup>Equal contribution</p>
@@ -62,7 +61,7 @@
 <!-- ─────────────────────────── TEASER ─────────────────────────── -->
 <section class="band">
   <div class="wrap">
-    <figure>
+    <figure class="w700">
       <img src="static/images/fig-1-teaser-crop.jpg" alt="Paired image grid: for each prompt, the original FLUX generation beside the UniForget generation, showing copyrighted characters replaced by generic equivalents at equal image quality." loading="lazy">
       <figcaption>
         <b>Figure 1.</b>
@@ -171,7 +170,7 @@
 <section>
   <div class="wrap">
     <h2>Results</h2>
-    <figure>
+    <figure class="w900">
       <img src="static/images/fig-3-demo-results.jpg" alt="Rows of generated images comparing FLUX schnell against weak, medium and strong UniForget models, for both copyright-sensitive prompts and neutral COCO prompts." loading="lazy">
       <figcaption>
         <b>Figure 3.</b>
@@ -183,10 +182,6 @@
       </figcaption>
     </figure>
 
-    <figure>
-      <img src="static/images/fig-9-copyright-demo.jpg" alt="Further side-by-side examples of copyright-sensitive generations before and after applying UniForget." loading="lazy">
-      <figcaption><b>Figure 4.</b> Further copyright-sensitive comparisons across domains.</figcaption>
-    </figure>
   </div>
 </section>
 
@@ -260,7 +255,7 @@
         <img src="static/images/fig-4-2-umap_COCO.png" alt="UMAP projection for neutral COCO prompts, showing the two latent clouds overlapping almost entirely." loading="lazy">
       </div>
       <figcaption>
-        <b>Figure 5.</b>
+        <b>Figure 4.</b>
         Visualizing the embedding space with UMAP. Blue circles represent image latents from UniForget (medium), orange
         squares represent latents from FLUX. For copyrighted prompts (Celebrity, Comic) the embedding space of our model is
         effectively decoupled from the original embedding space. For neutral prompts (COCO) the pruned model's embedding
@@ -268,10 +263,10 @@
       </figcaption>
     </figure>
 
-    <figure>
+    <figure class="w700">
       <img src="static/images/fig-5-magnitude.png" alt="Kernel density estimates of embedding magnitude for COCO and Celebrity prompts, before and after UniForget." loading="lazy">
       <figcaption>
-        <b>Figure 6.</b>
+        <b>Figure 5.</b>
         KDE distributions of embedding magnitude for the original model and UniForget. For the neutral prompts (COCO) the
         distribution remains largely unchanged. For copyrighted prompts (Celebrity) the original model produces
         significantly different magnitude distributions compared to neutral prompts; after applying UniForget these
@@ -293,18 +288,18 @@
       performance degradation in such cases.
     </p>
 
-    <figure>
+    <figure class="w900">
       <img src="static/images/fig-6-compatilibty.jpg" alt="Qualitative results combining UniForget with the Concept Ablation unlearning method and with a flow-matching editing method." loading="lazy">
       <figcaption>
-        <b>Figure 7.</b> Compatibility experiment with the unlearning method CA and the editing method FlowEdit.
+        <b>Figure 6.</b> Compatibility experiment with the unlearning method CA and the editing method FlowEdit.
         † indicates that we combined our pruned model with the editing method.
       </figcaption>
     </figure>
 
-    <figure class="half">
+    <figure class="w620">
       <img src="static/images/fig-7-baseline_comparision.png" alt="Plot of relative FID and CLIP against number of erased concepts, comparing UniForget to Unified Concept Editing." loading="lazy">
       <figcaption>
-        <b>Figure 8.</b> Unconscious concept removal (UniForget) vs. target concept removal (UCE), showing relative FID and
+        <b>Figure 7.</b> Unconscious concept removal (UniForget) vs. target concept removal (UCE), showing relative FID and
         CLIP compared with the original model.
       </figcaption>
     </figure>
@@ -393,18 +388,33 @@
   <div class="wrap narrow">
     <h2>Limitations and Future Work</h2>
     <p>
-      Our strong de-memorization model can also forget some neutral concepts, although this performance drop is largely
-      recovered after a brief retraining phase. Our evaluation additionally relies on the performance of VLMs such as
-      GPT-4o and LLaVA. These models can exhibit variability in detecting copyrighted content, sometimes misclassify
-      copyright-free content, or produce inconsistent judgments across different VLMs. Identifying copyright violations is
-      challenging for both VLMs and humans, underscoring the complexity of this issue. We also aim to extend this work to
-      other generative models, such as SD3 and Visual Autoregressive Models.
+      Although our method introduces a new perspective and achieves remarkable results, it involves certain trade-offs.
+      Figure 8 illustrates that our strong de-memorization model can also forget some neutral concepts. However, this
+      performance drop is largely recovered after a brief retraining phase. Additionally, our evaluation relies on the
+      performance of VLMs such as GPT-4o and LLaVA. We observed that these models can exhibit variability in detecting
+      copyrighted content, sometimes misclassify copyright-free content, or produce inconsistent judgments across
+      different VLMs, as shown in Figure 9. However, identifying copyright violations is challenging for both VLMs and
+      humans, underscoring the complexity of this issue. Developing reliable methods for detecting copyright-sensitive
+      content is an essential direction for the field. While this challenge is beyond the scope of our current research,
+      we plan to explore it further in future work. We also aim to extend this work to other generative models, such as
+      SD3 and the Visual Autoregressive Models.
     </p>
   </div>
   <div class="wrap">
-    <figure>
-      <img src="static/images/fig-8-limitation_too_strong.jpg" alt="Failure cases where strong de-memorization also removes neutral concepts or where VLM judges disagree about whether content is copyrighted." loading="lazy">
-      <figcaption><b>Figure 9.</b> Failure cases: over-suppression under the strong setting, and inconsistent VLM verdicts.</figcaption>
+    <figure class="w900">
+      <img src="static/images/fig-9-copyright-demo.jpg" alt="VQA responses from GPT-4o and LLaVA 1.6 on generated images, showing the judges validating a non-memorized character and disagreeing with each other in one case." loading="lazy">
+      <figcaption>
+        <b>Figure 8.</b> Demonstration of copyrighted content detection via VLMs. The VQA response from GPT-4o also
+        validates the character in our generated image, similar but not resembling memorized content. We also demonstrate
+        a conflict between GPT-4o's and LLaVA 1.6's responses.
+      </figcaption>
+    </figure>
+    <figure class="w700">
+      <img src="static/images/fig-8-limitation_too_strong.jpg" alt="Generations of Jupiter, the Eiffel Tower and Mount Rushmore degrading progressively under weak, medium and strong UniForget." loading="lazy">
+      <figcaption>
+        <b>Figure 9.</b> Demonstration of excessive de-memorization with the strong UniForget model for less
+        copyright-sensitive concepts such as Jupiter, the Eiffel Tower and Mount Rushmore.
+      </figcaption>
     </figure>
   </div>
 </section>
@@ -421,7 +431,7 @@
     <!-- TODO: put the files in static/pdfs/ and remove class="pending" -->
     <ul class="downloads">
       <li><a class="pending" href="static/pdfs/uniforget-paper.pdf" download>Main paper (PDF)</a> <span class="note">not yet uploaded</span></li>
-      <li><a class="pending" href="static/pdfs/uniforget-appendix.pdf" download>Supplementary, Appendix A–H (PDF)</a> <span class="note">not yet uploaded</span></li>
+      <li><a class="pending" href="static/pdfs/uniforget-appendix.pdf" download>Supplementary, Appendix A–G (PDF)</a> <span class="note">not yet uploaded</span></li>
       <li><a class="pending" href="static/pdfs/uniforget-supp.zip" download>Paper + appendix (ZIP)</a> <span class="note">not yet uploaded</span></li>
     </ul>
 
@@ -432,8 +442,7 @@
       <dt>D</dt><dd>Implementation details of the experiments.</dd>
       <dt>E</dt><dd>Detailed evaluation procedures for the GPT-4o and LLaVA 1.6 judges.</dd>
       <dt>G</dt><dd>Ablation determining the β values for the weak, medium and strong settings.</dd>
-      <dt>H</dt><dd>Additional failure cases and VLM inconsistency.</dd>
-    </dl>
+          </dl>
   </div>
 </section>
 

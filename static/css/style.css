@@ -121,7 +121,15 @@ figure { margin: 0 0 clamp(1.75rem, 4vw, 2.5rem); }
 figure:last-child { margin-bottom: 0; }
 figure img { width: 100%; border: 1px solid var(--line); background: #fff; }
 
-figure.half img { max-width: 620px; margin-inline: auto; }
+/* Keep figures compact — they should sit inside the text column, not dominate it. */
+figure.w900 img { max-width: 900px; margin-inline: auto; }
+figure.w700 img { max-width: 700px; margin-inline: auto; }
+figure.w620 img { max-width: 620px; margin-inline: auto; }
+figure.w900 figcaption,
+figure.w700 figcaption,
+figure.w620 figcaption { max-width: 900px; margin-inline: auto; }
+figure.w700 figcaption { max-width: 700px; }
+figure.w620 figcaption { max-width: 620px; }
 
 figcaption {
   font-size: .9rem;

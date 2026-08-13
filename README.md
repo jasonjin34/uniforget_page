@@ -9,8 +9,8 @@ Live at <https://jasonjin34.github.io/uniforget_page/>
 
     index.html            the whole page
     static/css/style.css  styles
-    static/js/main.js     the beta control, mask grid, KaTeX, copy-to-clipboard
-    static/images/        paper figures, resized for web
+    static/js/main.js     KaTeX equation rendering, copy-to-clipboard
+    static/images/        paper figures at original resolution
     static/pdfs/          paper + appendix downloads (see README there)
 
 ## Local preview

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UniForget — Mitigating Memorization Without Knowing What is being Memorized</title>
+<meta name="description" content="UniForget prunes a small subset of a diffusion model to suppress copyrighted content generation, without ever naming the concepts being forgotten. ECCV 2026 submission.">
+
+<meta property="og:title" content="UniForget: Mitigating Memorization Without Knowing What is being Memorized">
+<meta property="og:description" content="Deactivating 16.3% of FLUX suppresses over 2000 copyright-sensitive concepts, with no list of concepts required.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="static/images/fig-1-teaser-crop.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+
+<a class="skip" href="#abstract">Skip to abstract</a>
+
+<!-- ══════════════════════════ HERO ══════════════════════════ -->
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">ECCV 2026 &nbsp;·&nbsp; Submission 4866</p>
+
+    <h1 class="wordmark">UniForget</h1>
+    <p class="lede">Mitigating Memorization Without Knowing What is being Memorized</p>
+
+    <ul class="authors">
+      <li>Er Jin<sup>1</sup></li>
+      <li>Yang Zhang<sup>2</sup></li>
+      <li>Yongli Mou<sup>3</sup></li>
+      <li>Yanfei Dong<sup>4</sup></li>
+      <li>Stefan Decker<sup>1,5</sup></li>
+      <li>Kenji Kawaguchi<sup>2</sup></li>
+      <li>Johannes Stegmaier<sup>1</sup></li>
+    </ul>
+
+    <ol class="affils">
+      <li><sup>1</sup> Institute of Imaging and Computer Vision, RWTH Aachen University</li>
+      <li><sup>2</sup> National University of Singapore</li>
+      <li><sup>3</sup> Department of Computer Science, RWTH Aachen University</li>
+      <li><sup>4</sup> Independent Researcher</li>
+      <li><sup>5</sup> Fraunhofer Institute for Applied Information Technology FIT</li>
+    </ol>
+
+    <nav class="links" aria-label="Paper resources">
+      <!-- TODO: replace href="#" with real URLs when available -->
+      <a class="btn pending" href="#" aria-disabled="true">Paper <span>PDF</span></a>
+      <a class="btn pending" href="#" aria-disabled="true">arXiv <span>soon</span></a>
+      <a class="btn pending" href="#" aria-disabled="true">Code <span>soon</span></a>
+      <a class="btn" href="#appendix">Appendix <span>A–H</span></a>
+      <a class="btn" href="#bibtex">BibTeX</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ══════════════════ SIGNATURE: THE β CONSOLE ══════════════════ -->
+<section class="console" aria-labelledby="console-title">
+  <div class="wrap">
+    <h2 id="console-title" class="section-label">The whole method is one knob</h2>
+    <p class="console-intro">
+      UniForget trains a binary mask over the feedforward and normalization layers of FLUX using
+      <em>neutral prompts only</em>. The regularization coefficient&nbsp;<span class="math-inline">β</span>
+      sets how much of the model gets switched off — and that single number controls how much the model forgets.
+      Each square below is a slice of the mask.
+    </p>
+
+    <div class="grid-frame">
+      <div id="mask-grid" class="mask-grid" role="img" aria-label="Grid visualizing the fraction of model parameters deactivated at the selected regularization level"></div>
+    </div>
+
+    <div class="controls" role="radiogroup" aria-label="De-memorization level">
+      <button class="lvl" data-level="off"    role="radio" aria-checked="false"><span class="lvl-b">β = 0</span><span class="lvl-n">FLUX schnell</span></button>
+      <button class="lvl" data-level="weak"   role="radio" aria-checked="false"><span class="lvl-b">β = 1</span><span class="lvl-n">weak</span></button>
+      <button class="lvl is-on" data-level="medium" role="radio" aria-checked="true"><span class="lvl-b">β = 2</span><span class="lvl-n">medium</span></button>
+      <button class="lvl" data-level="strong" role="radio" aria-checked="false"><span class="lvl-b">β = 5</span><span class="lvl-n">strong</span></button>
+    </div>
+
+    <div class="readout" aria-live="polite">
+      <div class="ro ro-lead">
+        <span class="ro-k">Model deactivated</span>
+        <span class="ro-v" id="ro-mask">9.5<i>%</i></span>
+        <span class="ro-sub"><span id="ro-ffn">35.0%</span> of FFN · <span id="ro-norm">12.3%</span> of norm</span>
+      </div>
+      <div class="ro">
+        <span class="ro-k">Anime</span><span class="ro-v" id="ro-anime">30.3<i>%</i></span>
+        <span class="ro-sub">copyright detected</span>
+      </div>
+      <div class="ro">
+        <span class="ro-k">Comic</span><span class="ro-v" id="ro-comic">10.2<i>%</i></span>
+        <span class="ro-sub">copyright detected</span>
+      </div>
+      <div class="ro">
+        <span class="ro-k">Movie</span><span class="ro-v" id="ro-movie">23.3<i>%</i></span>
+        <span class="ro-sub">copyright detected</span>
+      </div>
+      <div class="ro">
+        <span class="ro-k">Celebrity</span><span class="ro-v" id="ro-celeb">17.4<i>%</i></span>
+        <span class="ro-sub">copyright detected</span>
+      </div>
+      <div class="ro ro-quiet">
+        <span class="ro-k">COCO 5K</span><span class="ro-v" id="ro-fid">32.4</span>
+        <span class="ro-sub">FID · CLIP <span id="ro-clip">0.28</span></span>
+      </div>
+    </div>
+    <p class="fineprint">
+      Detection rates are <span class="math-inline">Acc<sub>g</sub></span>, measured by GPT-4o over prompts from the
+      Anime, Comic, Movie and Celebrity evaluation sets. Lower is better everywhere except CLIP.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ TEASER ══════════════════════════ -->
+<section class="plate">
+  <div class="wrap">
+    <figure>
+      <img src="static/images/fig-1-teaser-crop.jpg" alt="Paired image grid: for each prompt, the original FLUX generation beside the UniForget generation, showing copyrighted characters replaced by generic equivalents at equal image quality." loading="lazy">
+      <figcaption>
+        <span class="fig-n">Fig. 1</span>
+        Each pair shares an identical prompt and seed: original FLUX on one side, the de-memorized model on the other.
+        Copyright-sensitive content disappears while composition and image quality survive.
+        <strong>One mask covers more than 2000 copyright-sensitive concepts</strong> — none of which were named during training.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══════════════════════════ ABSTRACT ══════════════════════════ -->
+<section id="abstract" class="prose">
+  <div class="wrap narrow">
+    <h2 class="section-label">Abstract</h2>
+    <p>
+      Recent advances in generative models have demonstrated an exceptional ability to produce highly realistic images.
+      However, previous studies show that generated images often resemble the training data, and this problem becomes more
+      severe as the model size increases. Memorizing training data can lead to legal challenges, including copyright
+      infringement, violations of portrait rights, and trademark violations. Existing approaches to mitigating memorization
+      mainly focus on manipulating the denoising sampling process to steer image embeddings away from the memorized
+      embedding space, or employ unlearning methods that require training on datasets containing specific sets of memorized
+      concepts. However, existing methods often incur substantial computational overhead during sampling, or focus narrowly
+      on removing one or more groups of target concepts, imposing a significant limitation on their scalability.
+    </p>
+    <p>
+      To understand and mitigate these problems, our work, <em>UniForget</em>, offers a new perspective on understanding the
+      root cause of memorization. Our work demonstrates that specific parts of the model are responsible for copyrighted
+      content generation. By applying model pruning, we can effectively suppress the probability of generating copyrighted
+      content without targeting specific concepts, while preserving the general generative capabilities of the model.
+      Additionally, we show that our approach is both orthogonal and complementary to existing unlearning methods, thereby
+      highlighting its potential to improve current unlearning and de-memorization techniques.
+    </p>
+    <p class="keywords">
+      Machine Unlearning &nbsp;·&nbsp; Diffusion Models &nbsp;·&nbsp; Copyright Protection &nbsp;·&nbsp; Model Pruning
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ HYPOTHESES ══════════════════════════ -->
+<section class="prose alt">
+  <div class="wrap">
+    <h2 class="section-label">Two hypotheses</h2>
+    <div class="hyps">
+      <article class="hyp">
+        <h3>Memorized and neutral embeddings come apart</h3>
+        <p>
+          The latent embeddings of memorized content can be separated from the embedding space of de-memorized features.
+          Modifying or removing the memorized embeddings does not significantly affect the generation of neutral features.
+        </p>
+      </article>
+      <article class="hyp">
+        <h3>A small set of parameters carries the memory</h3>
+        <p>
+          A small subset of model parameters influences the reproduction of copyrighted content. These parameters push
+          generated features away from the intended neutral embedding space — so removing them is enough.
+        </p>
+      </article>
+    </div>
+
+    <figure class="wide">
+      <img src="static/images/fig-2-explain_figure2-crop.jpg" alt="Diagram of the target distribution: a broad neutral subspace with narrow high-density spikes corresponding to memorized content, and the same distribution after those spikes are suppressed." loading="lazy">
+      <figcaption>
+        <span class="fig-n">Fig. 2</span>
+        Sampling projects noise onto a target distribution that carries narrow, exceptionally high-density spikes — the
+        subspace of memorized content. Copyright-sensitive prompts land the model on a remembered path to one of those
+        spikes. UniForget suppresses the spikes and forces the projection back into the neutral subspace.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══════════════════════════ METHOD ══════════════════════════ -->
+<section class="prose">
+  <div class="wrap narrow">
+    <h2 class="section-label">Method</h2>
+    <p>
+      A learnable mask <span class="tex">\mathcal{M}</span> is applied to the feedforward, attention and normalization layers
+      of the flow-matching backbone, relaxed to a differentiable form during training. Training uses 256 neutral prompts
+      drawn from LAION-2B and filtered by GPT-4o — <strong>no copyrighted prompt is ever shown to the optimizer</strong>:
+    </p>
+    <div class="eq" data-tex="\min_{\theta}\ \mathbb{E}_{c \sim \mathcal{C}_{n}} \bigg[ \frac{1}{N_l}\big\| \mathbb{F}_{u_{\theta}}(\mathbf{z}_0, N, c) - \mathbb{F}_u(\mathbf{z}_0, N, c) \big\|_2^2 + \beta \frac{\big\| \hat{\sigma}(\mathcal{M}) \big\|_1}{|\mathcal{M}|} \bigg]"></div>
+    <p>
+      The first term is a reconstruction loss between the denoised latent of the original model and that of the masked model,
+      which preserves generative ability on neutral prompts. The second term counts how much of the model stays switched on.
+      The mask is relaxed with
+    </p>
+    <div class="eq" data-tex="\hat{\mathcal{M}} = \hat{\sigma}(\mathcal{M}) = \sigma(\mathcal{M} \cdot \gamma + \delta), \qquad \gamma = 0.4,\ \delta = 1"></div>
+    <p>
+      Nothing in this objective mentions a concept, a character, or a celebrity. The only lever is
+      <span class="tex">\beta</span>: raise it and the optimizer switches off more of the model to satisfy the sparsity
+      term, which is why one hyperparameter turns into a de-memorization dial.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ RESULTS ══════════════════════════ -->
+<section class="plate">
+  <div class="wrap">
+    <h2 class="section-label">Results</h2>
+    <figure>
+      <img src="static/images/fig-3-demo-results.jpg" alt="Rows of generated images comparing FLUX schnell against weak, medium and strong UniForget models, for both copyright-sensitive prompts and neutral COCO prompts." loading="lazy">
+      <figcaption>
+        <span class="fig-n">Fig. 3</span>
+        De-memorization across categories and levels against FLUX schnell.
+        <strong>(a)</strong> On copyrighted prompts, generations keep the structure of the original but drop the copyrighted
+        elements. <strong>(b)</strong> On neutral COCO prompts, fidelity and semantics hold.
+      </figcaption>
+    </figure>
+
+    <figure>
+      <img src="static/images/fig-9-copyright-demo.jpg" alt="Further side-by-side examples of copyright-sensitive generations before and after applying UniForget." loading="lazy">
+      <figcaption>
+        <span class="fig-n">Fig. 4</span>
+        Further copyright-sensitive comparisons across domains.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══════════════════════════ MAIN TABLE ══════════════════════════ -->
+<section class="prose">
+  <div class="wrap">
+    <h2 class="section-label">Quantitative evaluation</h2>
+    <p class="table-intro">
+      More than 3000 copyright-sensitive prompts across four domains, judged by two VLMs.
+      <span class="math-inline">Acc<sub>g</sub></span> uses GPT-4o and <span class="math-inline">Acc<sub>l</sub></span> uses
+      LLaVA 1.6; both report how often copyrighted content is still detected, so lower is better.
+      General quality is FID and CLIP on COCO 5K. Rows follow the level selected above.
+    </p>
+    <div class="table-scroll">
+      <table class="data">
+        <caption class="sr-only">Removal of memorized copyrighted content across Anime, Comic, Movie and Celebrity, with generative quality on COCO</caption>
+        <thead>
+          <tr>
+            <th rowspan="2" scope="col" class="th-model">Model</th>
+            <th colspan="2" scope="colgroup">Anime</th>
+            <th colspan="2" scope="colgroup">Comic</th>
+            <th colspan="2" scope="colgroup">Movie</th>
+            <th colspan="2" scope="colgroup">Celebrity</th>
+            <th colspan="2" scope="colgroup" class="th-neutral">COCO</th>
+          </tr>
+          <tr class="sub">
+            <th scope="col">Acc<sub>g</sub> ↓</th><th scope="col">Acc<sub>l</sub> ↓</th>
+            <th scope="col">Acc<sub>g</sub> ↓</th><th scope="col">Acc<sub>l</sub> ↓</th>
+            <th scope="col">Acc<sub>g</sub> ↓</th><th scope="col">Acc<sub>l</sub> ↓</th>
+            <th scope="col">Acc<sub>g</sub> ↓</th><th scope="col">Acc<sub>l</sub> ↓</th>
+            <th scope="col" class="th-neutral">FID ↓</th><th scope="col" class="th-neutral">CLIP ↑</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">FLUX-dev</th>
+            <td>78.5%</td><td>81.3%</td><td>48.3%</td><td>87.1%</td><td>43.2%</td><td>36.5%</td><td>51.1%</td><td>55.4%</td>
+            <td class="td-neutral best">31.5</td><td class="td-neutral best">0.30</td></tr>
+          <tr data-row="off"><th scope="row">FLUX-schnell</th>
+            <td>68.7%</td><td>77.6%</td><td>42.6%</td><td>90.5%</td><td>37.1%</td><td>35.1%</td><td>43.2%</td><td>52.6%</td>
+            <td class="td-neutral">32.0</td><td class="td-neutral">0.29</td></tr>
+          <tr data-row="weak"><th scope="row">UniForget <i>weak</i></th>
+            <td>36.5%</td><td>52.2%</td><td>28.9%</td><td>70.2%</td><td>31.7%</td><td>26.3%</td><td>32.1%</td><td>36.7%</td>
+            <td class="td-neutral">32.1</td><td class="td-neutral">0.29</td></tr>
+          <tr data-row="medium"><th scope="row">UniForget <i>medium</i></th>
+            <td>30.3%</td><td>42.8%</td><td>10.2%</td><td>41.5%</td><td>23.3%</td><td>15.1%</td><td>17.4%</td><td>29.3%</td>
+            <td class="td-neutral">32.4</td><td class="td-neutral">0.28</td></tr>
+          <tr class="retrain"><th scope="row">UniForget <i>medium</i> + retrain</th>
+            <td>32.1%</td><td>44.5%</td><td>12.3%</td><td>43.9%</td><td>24.8%</td><td>16.9%</td><td>19.1%</td><td>31.2%</td>
+            <td class="td-neutral">31.8</td><td class="td-neutral">0.29</td></tr>
+          <tr data-row="strong"><th scope="row">UniForget <i>strong</i></th>
+            <td class="best">16.3%</td><td class="best">27.4%</td><td class="best">9.1%</td><td class="best">33.3%</td>
+            <td class="best">16.6%</td><td class="best">13.4%</td><td class="best">5.3%</td><td class="best">23.3%</td>
+            <td class="td-neutral">38.9</td><td class="td-neutral">0.25</td></tr>
+          <tr class="retrain"><th scope="row">UniForget <i>strong</i> + retrain</th>
+            <td>18.2%</td><td>29.8%</td><td>11.2%</td><td>35.1%</td><td>18.5%</td><td>15.2%</td><td>7.4%</td><td>25.6%</td>
+            <td class="td-neutral best">31.5</td><td class="td-neutral">0.29</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="fineprint">
+      The <i>+ retrain</i> variants add a short full-parameter fine-tuning stage. Generative quality returns to the original
+      level while de-memorization stays strong — evidence that the removed capability is localized, not structural.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ EMBEDDING SPACE ══════════════════════════ -->
+<section class="plate alt">
+  <div class="wrap">
+    <h2 class="section-label">Hypothesis 1 · the embedding space splits</h2>
+    <p class="table-intro">
+      Denoised latents projected to 2D with UMAP. Blue circles are UniForget (medium), orange squares are FLUX.
+      For copyrighted prompts the two clouds separate; for neutral prompts they stay on top of each other.
+    </p>
+    <div class="triptych">
+      <figure>
+        <img src="static/images/fig-4-1-umap_Celebrity.png" alt="UMAP projection for Celebrity prompts, showing UniForget latents largely separated from FLUX latents." loading="lazy">
+        <figcaption><span class="fig-n">5a</span> Memorized · Celebrity <span class="tag tag-sep">separated</span></figcaption>
+      </figure>
+      <figure>
+        <img src="static/images/fig-4-3-umap_Comic.png" alt="UMAP projection for Comic prompts, showing near-complete separation between UniForget and FLUX latents." loading="lazy">
+        <figcaption><span class="fig-n">5b</span> Memorized · Comic <span class="tag tag-sep">separated</span></figcaption>
+      </figure>
+      <figure>
+        <img src="static/images/fig-4-2-umap_COCO.png" alt="UMAP projection for neutral COCO prompts, showing the two latent clouds overlapping almost entirely." loading="lazy">
+        <figcaption><span class="fig-n">5c</span> Neutral · COCO <span class="tag tag-keep">preserved</span></figcaption>
+      </figure>
+    </div>
+
+    <figure class="wide">
+      <img src="static/images/fig-5-magnitude.png" alt="Kernel density estimates of embedding magnitude for COCO and Celebrity prompts, before and after UniForget." loading="lazy">
+      <figcaption>
+        <span class="fig-n">Fig. 6</span>
+        High text-conditional magnitude is a known signature of memorization. On neutral COCO prompts the magnitude
+        distribution barely moves; on Celebrity prompts it shifts substantially back toward the neutral distribution.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══════════════════════════ COMPATIBILITY ══════════════════════════ -->
+<section class="prose">
+  <div class="wrap">
+    <h2 class="section-label">Orthogonal to concept unlearning</h2>
+    <p class="table-intro">
+      UniForget removes what it was never told about; concept-erasure methods remove exactly what they are told about.
+      The two do not compete. UniForget treats <span class="mono">"nudity"</span> as neutral and leaves it alone — but
+      composed with Concept Ablation, both problems are handled at once, and quality degrades far less than concept erasure
+      alone as the number of targets grows.
+    </p>
+
+    <div class="two-up">
+      <figure>
+        <img src="static/images/fig-6-compatilibty.jpg" alt="Qualitative results combining UniForget with the Concept Ablation unlearning method and with a flow-matching editing method." loading="lazy">
+        <figcaption><span class="fig-n">Fig. 7</span> Composition with Concept Ablation and with flow-matching editing. † marks the pruned model combined with editing.</figcaption>
+      </figure>
+      <figure>
+        <img src="static/images/fig-7-baseline_comparision.png" alt="Plot of relative FID and CLIP against number of erased concepts, comparing UniForget to Unified Concept Editing." loading="lazy">
+        <figcaption><span class="fig-n">Fig. 8</span> Relative FID and CLIP versus the original model. Target-concept erasure (UCE) degrades as concepts accumulate; UniForget does not scale with concept count.</figcaption>
+      </figure>
+    </div>
+
+    <div class="two-tables">
+      <div class="table-scroll">
+        <table class="data compact">
+          <caption>Erasing <span class="mono">"nudity"</span> with Concept Ablation, on top of UniForget. Lower is better.</caption>
+          <thead><tr><th scope="col">Dataset</th><th scope="col">FLUX schnell</th><th scope="col">CA</th><th scope="col">CA + UF <i>med</i></th><th scope="col">CA + UF <i>strong</i></th></tr></thead>
+          <tbody>
+            <tr><th scope="row">I2P</th><td>30.3%</td><td class="best">17.4%</td><td>18.1%</td><td>19.3%</td></tr>
+            <tr><th scope="row">P4D</th><td>51.6%</td><td>22.3%</td><td class="best">21.2%</td><td>25.3%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-scroll">
+        <table class="data compact">
+          <caption>Generative quality on further neutral sets.</caption>
+          <thead><tr><th scope="col">Model</th><th scope="col">LAION FID ↓</th><th scope="col">LAION CLIP ↑</th><th scope="col">Flickr FID ↓</th><th scope="col">Flickr CLIP ↑</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">FLUX schnell</th><td class="best">42.1</td><td class="best">0.27</td><td>40.1</td><td>0.32</td></tr>
+            <tr><th scope="row">UniForget <i>weak</i></th><td>47.4</td><td>0.25</td><td class="best">39.4</td><td class="best">0.33</td></tr>
+            <tr><th scope="row">UniForget <i>medium</i></th><td>50.9</td><td>0.23</td><td>40.2</td><td>0.32</td></tr>
+            <tr><th scope="row">UniForget <i>strong</i></th><td>62.1</td><td>0.21</td><td>48.7</td><td>0.27</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ ABLATION ══════════════════════════ -->
+<section class="prose alt">
+  <div class="wrap">
+    <h2 class="section-label">Which layers hold the memory</h2>
+    <p class="table-intro">
+      Masking attention alone barely helps and wrecks quality. Feedforward and normalization layers carry the
+      memorization — masking those two gives the best de-memorization at essentially unchanged FID.
+    </p>
+    <div class="two-tables">
+      <div class="table-scroll">
+        <table class="data compact">
+          <caption>Module ablation for <i>medium</i> UniForget: Anime detection and COCO 5K quality.</caption>
+          <thead><tr><th scope="col">𝓜<sub>attn</sub></th><th scope="col">𝓜<sub>ffn</sub></th><th scope="col">𝓜<sub>norm</sub></th><th scope="col">Acc<sub>g</sub> ↓</th><th scope="col">CLIP ↑</th><th scope="col">FID ↓</th></tr></thead>
+          <tbody>
+            <tr><td class="x">✕</td><td class="x">✕</td><td class="x">✕</td><td>77.6%</td><td class="best">0.29</td><td class="best">32.0</td></tr>
+            <tr><td class="x">✕</td><td class="c">✓</td><td class="x">✕</td><td>21.4%</td><td>0.28</td><td>35.7</td></tr>
+            <tr><td class="c">✓</td><td class="x">✕</td><td class="c">✓</td><td>63.5%</td><td>0.21</td><td>45.4</td></tr>
+            <tr><td class="x">✕</td><td class="c">✓</td><td class="c">✓</td><td class="best">16.3%</td><td>0.28</td><td>32.4</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-scroll">
+        <table class="data compact">
+          <caption>Deactivation ratio per module against <span class="tex-i">β</span>.</caption>
+          <thead><tr><th scope="col">β</th><th scope="col">𝓜<sub>ffn</sub></th><th scope="col">𝓜<sub>norm</sub></th><th scope="col">𝓜 total</th></tr></thead>
+          <tbody>
+            <tr data-row="weak"><th scope="row">1 · weak</th><td>24.2%</td><td>5.6%</td><td>6.7%</td></tr>
+            <tr data-row="medium"><th scope="row">2 · medium</th><td>35.0%</td><td>12.3%</td><td>9.5%</td></tr>
+            <tr data-row="strong"><th scope="row">5 · strong</th><td>45.3%</td><td>19.1%</td><td>16.3%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════ LIMITATIONS ══════════════════════════ -->
+<section class="prose">
+  <div class="wrap narrow">
+    <h2 class="section-label">Limitations</h2>
+    <p>
+      Strong de-memorization also forgets some neutral concepts. A short retraining phase recovers most of that loss, but the
+      trade-off is real and worth stating plainly.
+    </p>
+    <p>
+      Evaluation depends on VLM judgment. GPT-4o and LLaVA 1.6 disagree with each other, sometimes flag copyright-free
+      content, and are not stable judges of what infringement looks like — a difficulty they share with human annotators.
+      Reliable detection of copyright-sensitive content remains open, and we treat it as future work alongside extending
+      the method to SD3 and visual autoregressive models.
+    </p>
+  </div>
+  <div class="wrap">
+    <figure class="wide">
+      <img src="static/images/fig-8-limitation_too_strong.jpg" alt="Failure cases where strong de-memorization also removes neutral concepts or where VLM judges disagree about whether content is copyrighted." loading="lazy">
+      <figcaption><span class="fig-n">Fig. 9</span> Failure cases: over-suppression under the strong setting, and inconsistent VLM verdicts.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══════════════════════════ APPENDIX ══════════════════════════ -->
+<section id="appendix" class="prose alt">
+  <div class="wrap">
+    <h2 class="section-label">Appendix &amp; downloads</h2>
+    <p class="table-intro">
+      The supplementary material carries the derivations, the full training and evaluation protocol, and the
+      failure cases referenced throughout the paper.
+    </p>
+
+    <div class="dl">
+      <!-- TODO: drop the files into static/pdfs/ and delete class="pending" from each card -->
+      <a class="dl-card pending" href="static/pdfs/uniforget-paper.pdf" download>
+        <span class="dl-k">Main paper</span>
+        <span class="dl-t">UniForget</span>
+        <span class="dl-m">PDF · not yet uploaded</span>
+      </a>
+      <a class="dl-card pending" href="static/pdfs/uniforget-appendix.pdf" download>
+        <span class="dl-k">Supplementary</span>
+        <span class="dl-t">Appendix A–H</span>
+        <span class="dl-m">PDF · not yet uploaded</span>
+      </a>
+      <a class="dl-card pending" href="static/pdfs/uniforget-supp.zip" download>
+        <span class="dl-k">Archive</span>
+        <span class="dl-t">Paper + appendix</span>
+        <span class="dl-m">ZIP · not yet uploaded</span>
+      </a>
+    </div>
+
+    <ol class="appendix-list">
+      <li><span class="ap-k">A</span> <span class="ap-t">Flow matching models</span> <span class="ap-d">Preliminaries and notation for the generative backbone.</span></li>
+      <li><span class="ap-k">B</span> <span class="ap-t">Flow matching for image generation</span> <span class="ap-d">The denoising sampling process <span class="mono">𝔽</span> used in the objective.</span></li>
+      <li><span class="ap-k">C</span> <span class="ap-t">Hard discrete relaxation</span> <span class="ap-d">Implementation of the relaxed sigmoid applied to the mask during training.</span></li>
+      <li><span class="ap-k">D</span> <span class="ap-t">Implementation details</span> <span class="ap-d">Training configuration for FLUX schnell and FLUX dev.</span></li>
+      <li><span class="ap-k">E</span> <span class="ap-t">Evaluation procedures</span> <span class="ap-d">VQA prompts and scoring for the GPT-4o and LLaVA 1.6 judges.</span></li>
+      <li><span class="ap-k">G</span> <span class="ap-t">Choosing β</span> <span class="ap-d">Ablation fixing the weak, medium and strong settings.</span></li>
+      <li><span class="ap-k">H</span> <span class="ap-t">Failure cases</span> <span class="ap-d">Over-suppression under the strong setting, and disagreement between VLM judges.</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ══════════════════════════ BIBTEX ══════════════════════════ -->
+<section id="bibtex" class="prose">
+  <div class="wrap narrow">
+    <h2 class="section-label">BibTeX</h2>
+    <div class="cite">
+      <button class="copy" data-copy="#cite-body">Copy</button>
+<pre id="cite-body"><code>@inproceedings{jin2026uniforget,
+  title     = {Unconsciously Forget: Mitigating Memorization Without
+               Knowing What is being Memorized},
+  author    = {Jin, Er and Zhang, Yang and Mou, Yongli and Dong, Yanfei
+               and Decker, Stefan and Kawaguchi, Kenji and Stegmaier, Johannes},
+  booktitle = {European Conference on Computer Vision (ECCV)},
+  year      = {2026}
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>UniForget · ECCV 2026 submission 4866</p>
+    <p class="quiet">RWTH Aachen University · National University of Singapore · Fraunhofer FIT</p>
+  </div>
+</footer>
+
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+<script defer src="static/js/main.js"></script>
+</body>
+</html>
